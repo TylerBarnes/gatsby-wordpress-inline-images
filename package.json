@@ -1,0 +1,14 @@
+{
+  "name": "gatsby-wordpress-inline-images",
+  "description": "A Gatsby plugin to turn remote inline images to local static images",
+  "version": "0.0.1-alpha.2",
+  "author": "Tyler Barnes <tylerdbarnes@gmail.com>",
+  "keywords": [
+    "gatsby plugin"
+  ],
+  "license": "MIT",
+  "main": "n/a",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2"
+  }
+}
