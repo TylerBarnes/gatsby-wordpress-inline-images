@@ -15,22 +15,22 @@ Add this plugin as a plugin of `gatsby-source-wordpress`.
 Be sure to specify your baseurl and protocol a second time in the `gatsby-wordpress-inline-images` options, not just in the `gatsby-source-wordpress` options.
 
 ```javascript
-{
-	resolve: `gatsby-source-wordpress`,
-	options: {
-		baseUrl: `your-site.com`,
-		protocol: `https`,
-		plugins: [
-			{
-				resolve: `gatsby-wordpress-inline-images`,
-				options: {
-					baseUrl: `your-site.com`,
-					protocol: `https`
-				}
-			}
-		]
-	}
-}
+  {
+    resolve: `gatsby-source-wordpress`,
+      options: {
+        baseUrl: `your-site.com`,
+          protocol: `https`,
+            plugins: [
+              {
+                resolve: `gatsby-wordpress-inline-images`,
+                options: {
+                  baseUrl: `your-site.com`,
+                  protocol: `https`
+                }
+              }
+            ]
+      }
+  }
 ```
 
 ## Options
