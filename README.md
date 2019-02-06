@@ -17,18 +17,18 @@ Be sure to specify your baseurl and protocol a second time in the `gatsby-wordpr
 ```javascript
   {
     resolve: `gatsby-source-wordpress`,
-      options: {
-        baseUrl: `your-site.com`,
-          protocol: `https`,
-            plugins: [
-              {
-                resolve: `gatsby-wordpress-inline-images`,
-                options: {
-                  baseUrl: `your-site.com`,
-                  protocol: `https`
-                }
-              }
-            ]
+    options: {
+      baseUrl: `your-site.com`
+      protocol: `https`,
+      plugins: [
+          {
+            resolve: `gatsby-wordpress-inline-images`,
+            options: {
+              baseUrl: `your-site.com`,
+              protocol: `https`
+            }
+          }
+        ]
       }
   }
 ```
