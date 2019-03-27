@@ -20,7 +20,11 @@ exports.sourceNodes = async (
   const defaults = {
     maxWidth: 650,
     wrapperStyle: ``,
-    backgroundColor: `white`
+    backgroundColor: `white`,
+    postTypes: [
+      'post',
+      'page'
+    ]
     // linkImagesToOriginal: true,
     // showCaptions: false,
     // pathPrefix,
@@ -36,7 +40,7 @@ exports.sourceNodes = async (
   const entities = nodes.filter(
     node =>
       node.internal.owner === "gatsby-source-wordpress" &&
-      ["post", "page"].includes(node.type)
+      options.postTypes.includes(node.type)
   );
 
   // we need to await transforming all the entities since we may need to get images remotely and generating fluid image data is async
