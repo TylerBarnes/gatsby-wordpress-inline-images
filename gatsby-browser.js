@@ -22,7 +22,7 @@ exports.onRouteUpdate = () => {
       imageElement.removeEventListener(`load`, onImageLoad);
     };
 
-    if (imageElement) {
+    if (imageElement && backgroundElement) {
       if (imageElement.complete) {
         backgroundElement.style.opacity = 0;
       } else {
