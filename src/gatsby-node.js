@@ -193,7 +193,9 @@ const generateImagesAndUpdateNode = async function({
 
   const imgOptions = {
     fluid: fluidResult,
-    style: {},
+    style: {
+      maxWidth: "100%"
+    },
     // Force show full image instantly
     critical: true,
     // fadeIn: true,
@@ -202,7 +204,6 @@ const generateImagesAndUpdateNode = async function({
     }
   }
   if (formattedImgTag.width) imgOptions.style.width = formattedImgTag.width
-  if (formattedImgTag.height) imgOptions.style.height = formattedImgTag.height
 
   const ReactImgEl = React.createElement(Img.default, imgOptions, null)
   return ReactDOMServer.renderToString(ReactImgEl)
