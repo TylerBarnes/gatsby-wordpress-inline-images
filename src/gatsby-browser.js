@@ -15,8 +15,6 @@ exports.onRouteUpdate = () => {
     const backgroundElement = imageWrapper.querySelector(imageBackgroundSelector)
     const imageElement = imageWrapper.querySelector(imageSelector)
 
-    console.log(imageElement)
-
     const onImageLoad = () => {
       backgroundElement.style.transition = `opacity 0.5s 0.5s`
       backgroundElement.style.opacity = 0
