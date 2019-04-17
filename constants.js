@@ -1,3 +1,6 @@
-exports.imageClass = `gatsby-resp-image-image`;
-exports.imageWrapperClass = `gatsby-resp-image-wrapper`;
-exports.imageBackgroundClass = `gatsby-resp-image-background-image`;
+const imageWrapperSelector = `.gatsby-image-wrapper`;
+const imageSelector = `${imageWrapperSelector} picture img`;
+const imageBackgroundSelector = `${imageWrapperSelector}  > img`;
+exports.imageWrapperSelector = imageWrapperSelector;
+exports.imageSelector = imageSelector;
+exports.imageBackgroundSelector = imageBackgroundSelector;
