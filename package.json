@@ -1,26 +1,26 @@
 {
-  "name": "gatsby-wordpress-inline-images",
-  "description": "A Gatsby plugin to turn remote inline images to local static images",
-  "version": "0.0.1-alpha.2",
-  "author": "Tyler Barnes <tylerdbarnes@gmail.com>",
-  "keywords": [
-    "gatsby plugin"
-  ],
-  "license": "MIT",
-  "main": "n/a",
-  "dependencies": {
-    "@babel/runtime": "^7.0.0",
-    "cheerio": "^1.0.0-rc.2"
-  },
-  "devDependencies": {
-    "@babel/cli": "^7.0.0",
-    "@babel/core": "^7.0.0",
-    "babel-preset-gatsby-package": "^0.1.4",
-    "cross-env": "^5.1.4"
-  },
-  "scripts": {
-    "build": "babel src --out-dir . --ignore **/__tests__",
-    "prepare": "cross-env NODE_ENV=production npm run build",
-    "watch": "babel -w ./src --out-dir . --extensions '.js' --ignore **/__tests__"
-  }
+	"name": "gatsby-wordpress-inline-images",
+	"description": "A Gatsby plugin to turn remote inline images to local static images",
+	"version": "1.0.0",
+	"author": "Tyler Barnes <tylerdbarnes@gmail.com>",
+	"keywords": [
+		"gatsby plugin"
+	],
+	"license": "MIT",
+	"main": "n/a",
+	"dependencies": {
+		"@babel/runtime": "^7.0.0",
+		"cheerio": "^1.0.0-rc.2"
+	},
+	"devDependencies": {
+		"@babel/cli": "^7.0.0",
+		"@babel/core": "^7.0.0",
+		"babel-preset-gatsby-package": "^0.1.4",
+		"cross-env": "^5.1.4"
+	},
+	"scripts": {
+		"build": "babel src --out-dir . --ignore **/__tests__",
+		"prepare": "cross-env NODE_ENV=production npm run build",
+		"watch": "babel -w ./src --out-dir . --extensions '.js' --ignore **/__tests__"
+	}
 }
