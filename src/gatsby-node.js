@@ -1,9 +1,15 @@
 const _ = require(`lodash`)
+
 const React = require(`react`)
+
 const ReactDOMServer = require(`react-dom/server`)
+
 const cheerio = require(`cheerio`)
+
 const { createRemoteFileNode } = require(`gatsby-source-filesystem`)
+
 const { fluid } = require(`gatsby-plugin-sharp`)
+
 const Img = require(`gatsby-image`)
 
 const parseWPImagePath = require(`./utils/parseWPImagePath`)
@@ -13,7 +19,6 @@ exports.sourceNodes = async (
   pluginOptions
 ) => {
   const { createNode } = actions
-
   const defaults = {
     maxWidth: 650,
     wrapperStyle: ``,
@@ -27,17 +32,14 @@ exports.sourceNodes = async (
   }
 
   const options = _.defaults(pluginOptions, defaults)
-
   const nodes = getNodes()
 
-  // for now just get all posts and pages.
-  // this will be dynamic later
   const entities = nodes.filter(
     node =>
       node.internal.owner === "gatsby-source-wordpress" &&
       options.postTypes.includes(node.type)
-  )
-
+  ) 
+  
   // we need to await transforming all the entities since we may need to get images remotely and generating fluid image data is async
   await Promise.all(
     entities.map(async entity =>
@@ -48,7 +50,7 @@ exports.sourceNodes = async (
           reporter,
           store,
           createNode,
-          createNodeId,
+          createNodeId
         },
         options
       )
@@ -62,7 +64,9 @@ const transformInlineImagestoStaticImages = async (
 ) => {
   const field = entity.content
 
-  if ((!field && typeof field !== "string") || !field.includes("<img")) return
+  if ((!field && typeof field !== "string") || !field.includes("<img")) {
+    return
+  }
 
   const $ = cheerio.load(field)
 
@@ -71,7 +75,6 @@ const transformInlineImagestoStaticImages = async (
   if (imgs.length === 0) return
 
   let imageRefs = []
-
   imgs.each(function() {
     imageRefs.push($(this))
   })
@@ -86,11 +89,10 @@ const transformInlineImagestoStaticImages = async (
         $,
         store,
         createNode,
-        createNodeId,
+        createNodeId
       })
     )
   )
-
   entity.content = $.html()
 }
 
@@ -102,31 +104,37 @@ const replaceImage = async ({
   createNode,
   createNodeId,
   reporter,
-  $,
+  $
 }) => {
   // find the full size image that matches, throw away WP resizes
   const parsedUrlData = parseWPImagePath(thisImg.attr("src"))
   const url = parsedUrlData.cleanUrl
-
   const imageNode = await downloadMediaFile({
     url,
     cache,
     store,
     createNode,
-    createNodeId,
+    createNodeId
   })
 
   if (!imageNode) return
 
   let classes = thisImg.attr("class")
-  let formattedImgTag = {}
-  formattedImgTag.url = thisImg.attr(`src`)
-  formattedImgTag.classList = classes ? classes.split(" ") : []
-  formattedImgTag.title = thisImg.attr(`title`)
-  formattedImgTag.alt = thisImg.attr(`alt`)
 
-  if (parsedUrlData.width) formattedImgTag.width = parsedUrlData.width
-  if (parsedUrlData.height) formattedImgTag.height = parsedUrlData.height
+  let formattedImgTag = {
+    url: thisImg.attr(`src`),
+    classList: classes ? classes.split(" ") : [],
+    title: thisImg.attr(`title`),
+    alt: thisImg.attr(`alt`)
+  }
+
+  if (parsedUrlData.width) {
+    formattedImgTag.width = parsedUrlData.width
+  }
+
+  if (parsedUrlData.height) {
+    formattedImgTag.height = parsedUrlData.height
+  }
 
   if (!formattedImgTag.url) return
 
@@ -141,35 +149,36 @@ const replaceImage = async ({
       options,
       cache,
       reporter,
-      $,
+      $
     })
 
     // Replace the image string
-    if (rawHTML) thisImg.replaceWith(rawHTML)
+    if (rawHTML) {
+      thisImg.replaceWith(rawHTML)
+    }
   }
 }
 
 // Takes a node and generates the needed images and then returns
 // the needed HTML replacement for the image
 const generateImagesAndUpdateNode = async function({
-  formattedImgTag,
   imageNode,
   options,
   cache,
-  reporter,
-  $,
+  reporter
 }) {
   if (!imageNode || !imageNode.absolutePath) return
 
+  const { maxWidth } = options
   let fluidResultWebp
-  let fluidResult = await fluid({
+
+  const fluidResult = await fluid({
     file: imageNode,
     args: {
-      ...options,
-      maxWidth: formattedImgTag.width || options.maxWidth,
+      ...options
     },
     reporter,
-    cache,
+    cache
   })
 
   if (options.withWebp) {
@@ -177,11 +186,10 @@ const generateImagesAndUpdateNode = async function({
       file: imageNode,
       args: {
         ...options,
-        maxWidth: formattedImgTag.width || options.maxWidth,
-        toFormat: 'WEBP'
+        toFormat: "WEBP"
       },
       reporter,
-      cache,
+      cache
     })
   }
 
@@ -194,18 +202,19 @@ const generateImagesAndUpdateNode = async function({
   const imgOptions = {
     fluid: fluidResult,
     style: {
-      maxWidth: "100%"
+      maxWidth,
+      width: "100%"
     },
     // Force show full image instantly
     critical: true,
-    // fadeIn: true,
+    fadeIn: true,
     imgStyle: {
       opacity: 1
     }
   }
-  if (formattedImgTag.width) imgOptions.style.width = formattedImgTag.width
 
   const ReactImgEl = React.createElement(Img.default, imgOptions, null)
+
   return ReactDOMServer.renderToString(ReactImgEl)
 }
 
@@ -214,7 +223,7 @@ const downloadMediaFile = async ({
   cache,
   store,
   createNode,
-  createNodeId,
+  createNodeId
 }) => {
   // const mediaDataCacheKey = `wordpress-media-${e.wordpress_id}`
   // const cacheMediaData = await cache.get(mediaDataCacheKey)
@@ -224,17 +233,17 @@ const downloadMediaFile = async ({
   //   fileNodeID = cacheMediaData.fileNodeID
   //   touchNode({ nodeId: cacheMediaData.fileNodeID })
   // }
-
   // If we don't have cached data, download the file
   // if (!fileNodeID) {
   let fileNode = false
+
   try {
     fileNode = await createRemoteFileNode({
       url,
       store,
       cache,
       createNode,
-      createNodeId,
+      createNodeId
     })
     // auth: _auth,
     // if (fileNode) {
@@ -244,16 +253,12 @@ const downloadMediaFile = async ({
     //   //   modified: e.modified,
     //   // })
     // }
-  } catch (e) {
-    // Ignore
-  }
+  } catch (e) {} // Ignore
   // }
 
-  return fileNode
-  // if (fileNodeID) {
+  return fileNode // if (fileNodeID) {
   //   e.localFile___NODE = fileNodeID
   //   delete e.media_details.sizes
   // }
-
   // return e
 }
