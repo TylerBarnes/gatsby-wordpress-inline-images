@@ -10,7 +10,7 @@ const { createRemoteFileNode } = require(`gatsby-source-filesystem`)
 
 const { fluid } = require(`gatsby-plugin-sharp`)
 
-const Img = require(`gatsby-image`)
+const Img = require(`gatsby-image`).default
 
 const parseWPImagePath = require(`./utils/parseWPImagePath`)
 
@@ -38,8 +38,8 @@ exports.sourceNodes = async (
     node =>
       node.internal.owner === "gatsby-source-wordpress" &&
       options.postTypes.includes(node.type)
-  ) 
-  
+  )
+
   // we need to await transforming all the entities since we may need to get images remotely and generating fluid image data is async
   await Promise.all(
     entities.map(async entity =>
@@ -68,7 +68,9 @@ const transformInlineImagestoStaticImages = async (
     return
   }
 
-  const $ = cheerio.load(field)
+  const $ = cheerio.load(field, {
+    xmlMode: true
+  })
 
   const imgs = $(`img`)
 
@@ -201,21 +203,47 @@ const generateImagesAndUpdateNode = async function({
 
   const imgOptions = {
     fluid: fluidResult,
+    className: 'test-classname',
     style: {
       maxWidth,
       width: "100%"
     },
-    // Force show full image instantly
     critical: true,
-    fadeIn: true,
-    imgStyle: {
-      opacity: 1
-    }
+    fadeIn: true
   }
 
-  const ReactImgEl = React.createElement(Img.default, imgOptions, null)
+  const ReactImgEl = React.createElement(Img, imgOptions, null)
 
-  return ReactDOMServer.renderToString(ReactImgEl)
+  const gatsbyimgString = ReactDOMServer.renderToString(ReactImgEl)
+
+  const $ = cheerio.load(gatsbyimgString, {
+    xmlMode: true
+  })
+
+  $(`img`).each(function(index, img) {
+    const src = $(img).attr(`src`)
+    const srcSet = $(img).attr(`srcSet`)
+    const sizes = $(img).attr(`sizes`)
+
+    // if the image isn't a base64 image
+    if (!src.includes("data:image/jpeg;base64")) {
+      // switch all src attributes to data
+      $(img).removeAttr(`src`)
+      $(img).removeAttr(`srcSet`)
+      $(img).removeAttr(`sizes`)
+
+      $(img).attr(`data-src`, src)
+      $(img).attr(`data-srcSet`, srcSet)
+      $(img).attr(`data-sizes`, sizes)
+
+      $(img).addClass(`gatsby-wordpress-inline-images--full-image`)
+      $(img).addClass(`gatsby-wordpress-inline-images--hidden`)
+    } else {
+      $(img).addClass(`gatsby-wordpress-inline-images--lqip`)
+    }
+  })
+
+  return $.html()
 }
 
 const downloadMediaFile = async ({

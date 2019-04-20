@@ -14,7 +14,7 @@ const {
   fluid
 } = require(`gatsby-plugin-sharp`);
 
-const Img = require(`gatsby-image`);
+const Img = require(`gatsby-image`).default;
 
 const parseWPImagePath = require(`./utils/parseWPImagePath`);
 
@@ -70,7 +70,9 @@ const transformInlineImagestoStaticImages = async ({
     return;
   }
 
-  const $ = cheerio.load(field);
+  const $ = cheerio.load(field, {
+    xmlMode: true
+  });
   const imgs = $(`img`);
   if (imgs.length === 0) return;
   let imageRefs = [];
@@ -187,19 +189,39 @@ const generateImagesAndUpdateNode = async function ({
 
   const imgOptions = {
     fluid: fluidResult,
+    className: 'test-classname',
     style: {
       maxWidth,
       width: "100%"
     },
-    // Force show full image instantly
     critical: true,
-    fadeIn: true,
-    imgStyle: {
-      opacity: 1
-    }
+    fadeIn: true
   };
-  const ReactImgEl = React.createElement(Img.default, imgOptions, null);
-  return ReactDOMServer.renderToString(ReactImgEl);
+  const ReactImgEl = React.createElement(Img, imgOptions, null);
+  const gatsbyimgString = ReactDOMServer.renderToString(ReactImgEl);
+  const $ = cheerio.load(gatsbyimgString, {
+    xmlMode: true
+  });
+  $(`img`).each(function (index, img) {
+    const src = $(img).attr(`src`);
+    const srcSet = $(img).attr(`srcSet`);
+    const sizes = $(img).attr(`sizes`); // if the image isn't a base64 image
+
+    if (!src.includes("data:image/jpeg;base64")) {
+      // switch all src attributes to data
+      $(img).removeAttr(`src`);
+      $(img).removeAttr(`srcSet`);
+      $(img).removeAttr(`sizes`);
+      $(img).attr(`data-src`, src);
+      $(img).attr(`data-srcSet`, srcSet);
+      $(img).attr(`data-sizes`, sizes);
+      $(img).addClass(`gatsby-wordpress-inline-images--full-image`);
+      $(img).addClass(`gatsby-wordpress-inline-images--hidden`);
+    } else {
+      $(img).addClass(`gatsby-wordpress-inline-images--lqip`);
+    }
+  });
+  return $.html();
 };
 
 const downloadMediaFile = async ({
