@@ -67,7 +67,7 @@ const transformInlineImagestoStaticImages = async ({
   createNodeId
 }, options) => {
   const field = entity.content;
-  if (!field && typeof field !== "string" || !field.includes("<img")) return;
+  if (typeof field !== "string" || !field.includes("<img")) return;
   const $ = cheerio.load(field);
   const imgs = $(`img`);
   if (imgs.length === 0) return;
