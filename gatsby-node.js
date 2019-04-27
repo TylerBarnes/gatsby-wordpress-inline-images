@@ -34,7 +34,8 @@ exports.sourceNodes = async ({
     wrapperStyle: ``,
     backgroundColor: `white`,
     postTypes: ["post", "page"],
-    withWebp: false // linkImagesToOriginal: true,
+    withWebp: false, // linkImagesToOriginal: true,
+    includeACF: false,
     // showCaptions: false,
     // pathPrefix,
     // withWebp: false
@@ -60,13 +61,49 @@ exports.sourceNodes = async ({
 
 const transformInlineImagestoStaticImages = async ({
   entity,
+  attribute,
   cache,
   reporter,
   store,
   createNode,
   createNodeId
 }, options) => {
-  const field = entity.content;
+
+  const field = entity[attribute || "content"]
+
+  if(attribute) {
+    // If attribute is defined, we're checking some ACF entity
+    if(typeof field === 'object' && field !== null) {
+      // If the ACF entity is an object, parse all its entries recursively
+      Object.keys(field).map(async key => {
+        await transformInlineImagestoStaticImages({
+            entity: field,
+            attribute: key,
+            cache,
+            reporter,
+            store,
+            createNode,
+            createNodeId
+          }, options);
+      });
+      return;
+    } // [implicit else] If ACF is not an object, "field" will be parsed later
+  } else {
+    // If attribute is not defined, we're parsing a top-level node
+    // so we should check this entity's ACF attributes
+    if(options.includeACF && entity.acf) {
+      await transformInlineImagestoStaticImages({
+        entity: entity,
+        attribute: "acf",
+        cache,
+        reporter,
+        store,
+        createNode,
+        createNodeId
+      }, options);
+    }
+  }
+
   if (!field && typeof field !== "string" || !field.includes("<img")) return;
   const $ = cheerio.load(field);
   const imgs = $(`img`);
@@ -85,7 +122,7 @@ const transformInlineImagestoStaticImages = async ({
     createNode,
     createNodeId
   })));
-  entity.content = $.html();
+  entity[attribute || "content"] = $.html();
 };
 
 const replaceImage = async ({
