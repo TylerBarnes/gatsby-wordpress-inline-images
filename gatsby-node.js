@@ -73,7 +73,9 @@ const transformInlineImagestoStaticImages = async ({
   if (imgs.length === 0) return;
   let imageRefs = [];
   imgs.each(function () {
-    imageRefs.push($(this));
+    let img = $(this)
+    if (img.attr("src"))
+      imageRefs.push(img)
   });
   await Promise.all(imageRefs.map(thisImg => replaceImage({
     thisImg,
