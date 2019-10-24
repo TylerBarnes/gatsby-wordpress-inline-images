@@ -107,14 +107,31 @@ const replaceImage = async ({
   // find the full size image that matches, throw away WP resizes
   const parsedUrlData = parseWPImagePath(thisImg.attr("src"))
   const url = parsedUrlData.cleanUrl
+  let imageNode;
 
-  const imageNode = await downloadMediaFile({
-    url,
-    cache,
-    store,
-    createNode,
-    createNodeId,
-  })
+  try{
+    imageNode = await downloadMediaFile({
+      url,
+      cache,
+      store,
+      createNode,
+      createNodeId,
+    })
+  }
+  catch(e) {
+   try {
+    imageNode = await downloadMediaFile({
+      parsedUrlData,
+      cache,
+      store,
+      createNode,
+      createNodeId,
+    })
+   }
+   catch(e) {
+     // Do nothing
+   }
+  }
 
   if (!imageNode) return
 
