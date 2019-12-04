@@ -218,6 +218,7 @@ const generateImagesAndUpdateNode = async function({
     },
     // Force show full image instantly
     critical: true,
+    alt: formattedImgTag.alt,
     // fadeIn: true,
     imgStyle: {
       opacity: 1
