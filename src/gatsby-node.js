@@ -9,252 +9,315 @@ const Img = require(`gatsby-image`)
 const parseWPImagePath = require(`./utils/parseWPImagePath`)
 
 exports.sourceNodes = async (
-  { getNodes, cache, reporter, store, actions, createNodeId },
-  pluginOptions
+	{ getNodes, cache, reporter, store, actions, createNodeId },
+	pluginOptions,
 ) => {
-  const { createNode } = actions
+	const { createNode } = actions
 
-  const defaults = {
-    maxWidth: 650,
-    wrapperStyle: ``,
-    backgroundColor: `white`,
-    postTypes: ["post", "page"],
-    withWebp: false
-    // linkImagesToOriginal: true,
-    // showCaptions: false,
-    // pathPrefix,
-    // withWebp: false
-  }
+	const defaults = {
+		maxWidth: 650,
+		wrapperStyle: ``,
+		backgroundColor: `white`,
+		postTypes: ["post", "page"],
+		withWebp: false,
+		useACF: false,
+		// linkImagesToOriginal: true,
+		// showCaptions: false,
+		// pathPrefix,
+		// withWebp: false
+	}
 
-  const options = _.defaults(pluginOptions, defaults)
+	const options = _.defaults(pluginOptions, defaults)
 
-  const nodes = getNodes()
+	const nodes = getNodes()
 
-  // for now just get all posts and pages.
-  // this will be dynamic later
-  const entities = nodes.filter(
-    node =>
-      node.internal.owner === "gatsby-source-wordpress" &&
-      options.postTypes.includes(node.type)
-  )
+	// for now just get all posts and pages.
+	// this will be dynamic later
+	const entities = nodes.filter(
+		node =>
+			node.internal.owner === "gatsby-source-wordpress" &&
+			options.postTypes.includes(node.type),
+	)
 
-  // we need to await transforming all the entities since we may need to get images remotely and generating fluid image data is async
-  await Promise.all(
-    entities.map(async entity =>
-      transformInlineImagestoStaticImages(
-        {
-          entity,
-          cache,
-          reporter,
-          store,
-          createNode,
-          createNodeId,
-        },
-        options
-      )
-    )
-  )
+	// we need to await transforming all the entities since we may need to get images remotely and generating fluid image data is async
+	await Promise.all(
+		entities.map(async entity =>
+			transformInlineImagestoStaticImages(
+				{
+					entity,
+					cache,
+					reporter,
+					store,
+					createNode,
+					createNodeId,
+				},
+				options,
+			),
+		),
+	)
 }
 
 const transformInlineImagestoStaticImages = async (
-  { entity, cache, reporter, store, createNode, createNodeId },
-  options
+	{ entity, cache, reporter, store, createNode, createNodeId, attribute },
+	options,
 ) => {
-  const field = entity.content
+	const field = entity[attribute || "content"]
 
-  if ((!field && typeof field !== "string") || !field.includes("<img")) return
+	if (attribute) {
+		// If attribute is defined, we're checking some ACF entity
+		if (typeof field === "object" && field !== null) {
+			// If the ACF entity is an object, parse all its entries recursively
+			Object.keys(field).map(async key => {
+				await transformInlineImagestoStaticImages(
+					{
+						entity: field,
+						attribute: key,
+						cache,
+						reporter,
+						store,
+						createNode,
+						createNodeId,
+					},
+					options,
+				)
+			})
+			return
+		} // [implicit else] If ACF is not an object, "field" will be parsed later
+	} else {
+		// If attribute is not defined, we're parsing a top-level node
+		// so we should check this entity's ACF attributes
+		if (options.useACF && entity.acf) {
+			await transformInlineImagestoStaticImages(
+				{
+					entity: entity,
+					attribute: "acf",
+					cache,
+					reporter,
+					store,
+					createNode,
+					createNodeId,
+				},
+				options,
+			)
+		}
+	}
 
-  const $ = cheerio.load(field)
+	if ((!field && typeof field !== "string") || !field.includes("<img")) return
 
-  const imgs = $(`img`)
+	const $ = cheerio.load(field)
 
-  if (imgs.length === 0) return
+	const imgs = $(`img`)
 
-  let imageRefs = []
+	if (imgs.length === 0) return
 
-  imgs.each(function() {
-    imageRefs.push($(this))
-  })
+	let imageRefs = []
 
-  await Promise.all(
-    imageRefs.map(thisImg =>
-      replaceImage({
-        thisImg,
-        options,
-        cache,
-        reporter,
-        $,
-        store,
-        createNode,
-        createNodeId,
-      })
-    )
-  )
+	imgs.each(function() {
+		let img = $(this)
+		if (img.attr("src")) {
+			imageRefs.push(img)
+		}
+	})
 
-  entity.content = $.html()
+	await Promise.all(
+		imageRefs.map(thisImg =>
+			replaceImage({
+				thisImg,
+				options,
+				cache,
+				reporter,
+				$,
+				store,
+				createNode,
+				createNodeId,
+			}),
+		),
+	)
+
+	entity[attribute || "content"] = $.html()
 }
 
 const replaceImage = async ({
-  thisImg,
-  options,
-  cache,
-  store,
-  createNode,
-  createNodeId,
-  reporter,
-  $,
+	thisImg,
+	options,
+	cache,
+	store,
+	createNode,
+	createNodeId,
+	reporter,
+	$,
 }) => {
-  // find the full size image that matches, throw away WP resizes
-  const parsedUrlData = parseWPImagePath(thisImg.attr("src"))
-  const url = parsedUrlData.cleanUrl
+	// find the full size image that matches, throw away WP resizes
+	const parsedUrlData = parseWPImagePath(thisImg.attr("src"))
+	const url = parsedUrlData.cleanUrl
 
-  const imageNode = await downloadMediaFile({
-    url,
-    cache,
-    store,
-    createNode,
-    createNodeId,
-  })
+	let imageNode
 
-  if (!imageNode) return
+	// Try to download the full size image without the WP resize parameters (removed on parse)
+	try {
+		imageNode = await downloadMediaFile({
+			url,
+			cache,
+			store,
+			createNode,
+			createNodeId,
+		})
+	} catch (e) {
+		// If the image without WP resize parameters on the URL does not exist it means that the original file has sizes
+		// Try to download the image with the original URL
+		try {
+			imageNode = await downloadMediaFile({
+				parsedUrlData,
+				cache,
+				store,
+				createNode,
+				createNodeId,
+			})
+		} catch (e) {
+			// Do nothing
+		}
+	}
 
-  let classes = thisImg.attr("class")
-  let formattedImgTag = {}
-  formattedImgTag.url = thisImg.attr(`src`)
-  formattedImgTag.classList = classes ? classes.split(" ") : []
-  formattedImgTag.title = thisImg.attr(`title`)
-  formattedImgTag.alt = thisImg.attr(`alt`)
+	if (!imageNode) return
 
-  if (parsedUrlData.width) formattedImgTag.width = parsedUrlData.width
-  if (parsedUrlData.height) formattedImgTag.height = parsedUrlData.height
+	let classes = thisImg.attr("class")
+	let formattedImgTag = {}
+	formattedImgTag.url = thisImg.attr(`src`)
+	formattedImgTag.classList = classes ? classes.split(" ") : []
+	formattedImgTag.title = thisImg.attr(`title`)
+	formattedImgTag.alt = thisImg.attr(`alt`)
 
-  if (!formattedImgTag.url) return
+	if (parsedUrlData.width) formattedImgTag.width = parsedUrlData.width
+	if (parsedUrlData.height) formattedImgTag.height = parsedUrlData.height
 
-  const fileType = imageNode.ext
+	if (!formattedImgTag.url) return
 
-  // Ignore gifs as we can't process them,
-  // svgs as they are already responsive by definition
-  if (fileType !== `gif` && fileType !== `svg`) {
-    const rawHTML = await generateImagesAndUpdateNode({
-      formattedImgTag,
-      imageNode,
-      options,
-      cache,
-      reporter,
-      $,
-    })
+	const fileType = imageNode.ext
 
-    // Replace the image string
-    if (rawHTML) thisImg.replaceWith(rawHTML)
-  }
+	// Ignore gifs as we can't process them,
+	// svgs as they are already responsive by definition
+	if (fileType !== `gif` && fileType !== `svg`) {
+		const rawHTML = await generateImagesAndUpdateNode({
+			formattedImgTag,
+			imageNode,
+			options,
+			cache,
+			reporter,
+			$,
+		})
+
+		// Replace the image string
+		if (rawHTML) thisImg.replaceWith(rawHTML)
+	}
 }
 
 // Takes a node and generates the needed images and then returns
 // the needed HTML replacement for the image
 const generateImagesAndUpdateNode = async function({
-  formattedImgTag,
-  imageNode,
-  options,
-  cache,
-  reporter,
-  $,
+	formattedImgTag,
+	imageNode,
+	options,
+	cache,
+	reporter,
+	$,
 }) {
-  if (!imageNode || !imageNode.absolutePath) return
+	if (!imageNode || !imageNode.absolutePath) return
 
-  let fluidResultWebp
-  let fluidResult = await fluid({
-    file: imageNode,
-    args: {
-      ...options,
-      maxWidth: formattedImgTag.width || options.maxWidth,
-    },
-    reporter,
-    cache,
-  })
+	let fluidResultWebp
+	let fluidResult = await fluid({
+		file: imageNode,
+		args: {
+			...options,
+			maxWidth: formattedImgTag.width || options.maxWidth,
+		},
+		reporter,
+		cache,
+	})
 
-  if (options.withWebp) {
-    fluidResultWebp = await fluid({
-      file: imageNode,
-      args: {
-        ...options,
-        maxWidth: formattedImgTag.width || options.maxWidth,
-        toFormat: 'WEBP'
-      },
-      reporter,
-      cache,
-    })
-  }
+	if (options.withWebp) {
+		fluidResultWebp = await fluid({
+			file: imageNode,
+			args: {
+				...options,
+				maxWidth: formattedImgTag.width || options.maxWidth,
+				toFormat: "WEBP",
+			},
+			reporter,
+			cache,
+		})
+	}
 
-  if (!fluidResult) return
+	if (!fluidResult) return
 
-  if (options.withWebp) {
-    fluidResult.srcSetWebp = fluidResultWebp.srcSet
-  }
+	if (options.withWebp) {
+		fluidResult.srcSetWebp = fluidResultWebp.srcSet
+	}
 
-  const imgOptions = {
-    fluid: fluidResult,
-    style: {
-      maxWidth: "100%"
-    },
-    // Force show full image instantly
-    // critical: true, // depricated
-    loading: 'eager',
-    // fadeIn: true,
-    imgStyle: {
-      opacity: 1
-    }
-  }
-  if (formattedImgTag.width) imgOptions.style.width = formattedImgTag.width
+	const imgOptions = {
+		fluid: fluidResult,
+		style: {
+			maxWidth: "100%",
+		},
+		// Force show full image instantly
+		// critical: true, // depricated
+		loading: "eager",
+		alt: formattedImgTag.alt,
+		// fadeIn: true,
+		imgStyle: {
+			opacity: 1,
+		},
+	}
+	if (formattedImgTag.width) imgOptions.style.width = formattedImgTag.width
 
-  const ReactImgEl = React.createElement(Img.default, imgOptions, null)
-  return ReactDOMServer.renderToString(ReactImgEl)
+	const ReactImgEl = React.createElement(Img.default, imgOptions, null)
+	return ReactDOMServer.renderToString(ReactImgEl)
 }
 
 const downloadMediaFile = async ({
-  url,
-  cache,
-  store,
-  createNode,
-  createNodeId,
+	url,
+	cache,
+	store,
+	createNode,
+	createNodeId,
 }) => {
-  // const mediaDataCacheKey = `wordpress-media-${e.wordpress_id}`
-  // const cacheMediaData = await cache.get(mediaDataCacheKey)
-  // // If we have cached media data and it wasn't modified, reuse
-  // // previously created file node to not try to redownload
-  // if (cacheMediaData && e.modified === cacheMediaData.modified) {
-  //   fileNodeID = cacheMediaData.fileNodeID
-  //   touchNode({ nodeId: cacheMediaData.fileNodeID })
-  // }
+	// const mediaDataCacheKey = `wordpress-media-${e.wordpress_id}`
+	// const cacheMediaData = await cache.get(mediaDataCacheKey)
+	// // If we have cached media data and it wasn't modified, reuse
+	// // previously created file node to not try to redownload
+	// if (cacheMediaData && e.modified === cacheMediaData.modified) {
+	//   fileNodeID = cacheMediaData.fileNodeID
+	//   touchNode({ nodeId: cacheMediaData.fileNodeID })
+	// }
 
-  // If we don't have cached data, download the file
-  // if (!fileNodeID) {
-  let fileNode = false
-  try {
-    fileNode = await createRemoteFileNode({
-      url,
-      store,
-      cache,
-      createNode,
-      createNodeId,
-    })
-    // auth: _auth,
-    // if (fileNode) {
-    //   fileNodeID = fileNode.id
-    //   // await cache.set(mediaDataCacheKey, {
-    //   //   fileNodeID,
-    //   //   modified: e.modified,
-    //   // })
-    // }
-  } catch (e) {
-    // Ignore
-  }
-  // }
+	// If we don't have cached data, download the file
+	// if (!fileNodeID) {
+	let fileNode = false
+	try {
+		fileNode = await createRemoteFileNode({
+			url,
+			store,
+			cache,
+			createNode,
+			createNodeId,
+		})
+		// auth: _auth,
+		// if (fileNode) {
+		//   fileNodeID = fileNode.id
+		//   // await cache.set(mediaDataCacheKey, {
+		//   //   fileNodeID,
+		//   //   modified: e.modified,
+		//   // })
+		// }
+	} catch (e) {
+		// Ignore
+	}
+	// }
 
-  return fileNode
-  // if (fileNodeID) {
-  //   e.localFile___NODE = fileNodeID
-  //   delete e.media_details.sizes
-  // }
+	return fileNode
+	// if (fileNodeID) {
+	//   e.localFile___NODE = fileNodeID
+	//   delete e.media_details.sizes
+	// }
 
-  // return e
+	// return e
 }
