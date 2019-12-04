@@ -21,7 +21,6 @@
 	"scripts": {
 		"copy-files": "cp package.json ./dist/package.json && cp index.js ./dist/index.js",
 		"build": "yarn copy-files && babel src --out-dir ./dist --verbose --ignore **/__tests__",
-		"prepare": "cross-env NODE_ENV=production npm run build",
 		"watch": "yarn copy-files && babel -w ./src --out-dir ./dist --verbose --extensions '.js' --ignore **/__tests__"
 	}
 }
