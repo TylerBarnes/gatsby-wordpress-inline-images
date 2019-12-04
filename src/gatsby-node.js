@@ -68,7 +68,6 @@ const transformInlineImagestoStaticImages = async (
 		if (typeof field === "object" && field !== null) {
 			// If the ACF entity is an object, parse all its entries recursively
 			Object.keys(field).map(async key => {
-				console.log("​key", key)
 				await transformInlineImagestoStaticImages(
 					{
 						entity: field,
@@ -260,7 +259,8 @@ const generateImagesAndUpdateNode = async function({
 			maxWidth: "100%",
 		},
 		// Force show full image instantly
-		critical: true,
+		// critical: true, // depricated
+		loading: "eager",
 		alt: formattedImgTag.alt,
 		// fadeIn: true,
 		imgStyle: {
