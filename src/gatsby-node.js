@@ -73,7 +73,10 @@ const transformInlineImagestoStaticImages = async (
 	let imageRefs = []
 
 	imgs.each(function() {
-		imageRefs.push($(this))
+		let img = $(this)
+		if (img.attr("src")) {
+			imageRefs.push(img)
+		}
 	})
 
 	await Promise.all(
