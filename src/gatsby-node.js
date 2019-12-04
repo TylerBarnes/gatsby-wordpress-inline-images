@@ -20,6 +20,7 @@ exports.sourceNodes = async (
 		backgroundColor: `white`,
 		postTypes: ["post", "page"],
 		withWebp: false,
+		includeACF: false,
 		// linkImagesToOriginal: true,
 		// showCaptions: false,
 		// pathPrefix,
