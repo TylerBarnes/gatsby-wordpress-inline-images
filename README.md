@@ -50,7 +50,7 @@ Be sure to specify your baseurl and protocol a second time in the `gatsby-wordpr
 		postTypes: ["post", "page"],
 		backgroundColor: `white`,
 		withWebp: false, // enable WebP files generation
-		includeACF: false, // process <img> tags in ACF fields too
+		useACF: false, // process <img> tags in ACF fields too
 		// add any image sharp fluid options here
 		// ...
 	}
