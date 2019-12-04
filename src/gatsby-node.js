@@ -106,6 +106,7 @@ const transformInlineImagestoStaticImages = async (
 
 	const $ = cheerio.load(field, {
 		xmlMode: true,
+	})
 
 	const imgs = $(`img`)
 
