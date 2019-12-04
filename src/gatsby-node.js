@@ -104,7 +104,8 @@ const transformInlineImagestoStaticImages = async (
 
 	if ((!field && typeof field !== "string") || !field.includes("<img")) return
 
-	const $ = cheerio.load(field)
+	const $ = cheerio.load(field, {
+		xmlMode: true,
 
 	const imgs = $(`img`)
 
