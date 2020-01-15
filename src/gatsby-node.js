@@ -169,7 +169,7 @@ const replaceImage = async ({
 		// Try to download the image with the original URL
 		try {
 			imageNode = await downloadMediaFile({
-				url: originalUrl, //<- important use `url`
+				url: originalUrl,
 				cache,
 				store,
 				createNode,
