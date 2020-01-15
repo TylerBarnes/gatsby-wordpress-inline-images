@@ -5,7 +5,8 @@ module.exports = function parseWPImagePath(urlpath) {
   const urlpath_remove_sizes = urlpath.replace(imageSizesPattern, "")
 
   const result = {
-    cleanUrl: urlpath_remove_sizes
+    cleanUrl: urlpath_remove_sizes,
+    originalUrl: urlpath
   }
 
   if (sizesMatch) {

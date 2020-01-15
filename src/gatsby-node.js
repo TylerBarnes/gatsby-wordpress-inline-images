@@ -152,7 +152,7 @@ const replaceImage = async ({
 	// find the full size image that matches, throw away WP resizes
 	const parsedUrlData = parseWPImagePath(thisImg.attr("src"))
 	const url = parsedUrlData.cleanUrl
-
+	const { originalUrl } = parsedUrlData;
 	let imageNode
 
 	// Try to download the full size image without the WP resize parameters (removed on parse)
@@ -169,7 +169,7 @@ const replaceImage = async ({
 		// Try to download the image with the original URL
 		try {
 			imageNode = await downloadMediaFile({
-				parsedUrlData,
+				url: originalUrl, //<- important use `url`
 				cache,
 				store,
 				createNode,
@@ -311,7 +311,7 @@ const downloadMediaFile = async ({
 		//   // })
 		// }
 	} catch (e) {
-		// Ignore
+		throw Error(e);
 	}
 	// }
 
