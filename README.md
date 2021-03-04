@@ -1,4 +1,4 @@
-__NOTE__: I've joined the Gatsby core team to work on the future of `gatsby-source-wordpress` with WPGraphQL. For that reason I will be deprioritizing working on this package and will soon deprecate it. If you need this package and are interested in maintaining it please ask me about it!
+__warning: This package is not needed anymore. `gatsby-source-wordpress` v4+ includes this by default__
 
 # Gatsby WordPress inline images
 
